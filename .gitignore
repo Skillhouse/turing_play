@@ -32,3 +32,8 @@ turing
 # Debug files
 *.dSYM/
 *.su
+
+
+# default output filenames.
+
+frame*.pgm
