@@ -17,7 +17,8 @@ static char target[PATH_MAX] = "";
 static double seed = clock();
 static double **A,**B,**TMP,CA=3,CB=20;
 static int iterations = 2000, maxI=512, maxJ=512;
-
+static int every = 10;
+static int nframes = 0;
 
 
 void dump_field (char const *base, int iter)
@@ -27,21 +28,30 @@ void dump_field (char const *base, int iter)
   char fname[blen];
 
 
+  if (1)   { 
+    double high=0, low=255;
+    for (int i=0;i<maxI;i++) 
+      for (int j=0;j<maxJ;j++) 
+	{ 
+	  if (A[i][j]>high) high=A[i][j];
+	  else if (A[i][j]<low) low=A[i][j];
+	}
+                 
+    for (int i=0;i<maxI;i++) 
+      for (int j=0;j<maxJ;j++) 
+	TMP[i][j]=(A[i][j]-low)*255.0/(high-low);
+  } 
 
-
-
-  snprintf(fname,blen,"%s-%d.pgm",base,iter);
+  snprintf(fname,blen,"%s-%04d.pgm",base,iter);
 
   FILE* zout=fopen(fname,"wb");
-
-
 
 
   fprintf (zout,"P5 %d %d 255 ",maxJ,maxI);
   
   for (int i=0;i<maxI;i++) 
     for (int j=0;j<maxJ;j++)
-      fprintf(zout,"%c",(unsigned char)A[i][j]);       
+      fprintf(zout,"%c",(unsigned char)TMP[i][j]);       
   
   fclose(zout);
   
@@ -85,6 +95,7 @@ main(int argc, char **argv)
 	  {"outputdir",      required_argument,       0, 'o'},
 	  {"basename" ,      required_argument,       0, 'n'},
 	  {"seed",           required_argument,       0, 's'},
+	  {"every",          required_argument,       0, 'e'},
 	  
 	  {0, 0, 0, 0}
 	};
@@ -130,6 +141,11 @@ main(int argc, char **argv)
 	  seed=strtol(optarg,0,10);
           break;
 
+        case 'e':
+	  if (verbose_flag) printf ("option -every with value '%s'\n", optarg);
+	  every=strtol(optarg,0,10);
+          break;
+
         case '?':
           /* getopt_long already printed an error message. */
           break;
@@ -150,6 +166,7 @@ main(int argc, char **argv)
     printf (" Iterations: '%d'\n", iterations);
     printf (" Output dir: '%s'\n", outdir);
     printf (" target: '%s'\n", target);
+    printf (" every: '%d'\n", every);
     
   }
 
@@ -183,22 +200,17 @@ main(int argc, char **argv)
 	} 
     }
 		
-  FILE* fich=fopen("start-new-11.pgm","wb");
-  if (!fich) 
-    { 
-      printf ("File problems!\n");
-      exit(1);
-    }
-
 
   dump_field(target,0);
 
-
   /**** Use Turing's Model ****/ 
 
+ 
   for (n=0;n<iterations;n++) 
     { 
       if (n % 100 == 0) printf("%d\n",iterations-n);
+      if (n % every == 0 ){ printf ("."); dump_field(target,nframes++); } 
+
       for (i=0;i<maxI;i++) 
 	{ 
 	  int iplus1 = i+1, iminus1 = i-1;
@@ -235,7 +247,7 @@ main(int argc, char **argv)
 
   /**** Scale the results to 0-255 ******/ 
 	
-  { 
+  if (0)  { 
     double high=0, low=255;
     for (i=0;i<maxI;i++) 
       for (j=0;j<maxJ;j++) 
